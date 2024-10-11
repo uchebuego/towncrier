@@ -82,7 +82,8 @@ func (cl *ContractListener) listenToEvent(eventConfig config.EventConfig) {
 
 func (cl *ContractListener) processLog(vLog types.Log, eventName, webhookURL string) {
 	dataMap := make(map[string]interface{})
-	_, ok := cl.contractABI.Events[eventName]
+
+	event, ok := cl.contractABI.Events[eventName]
 	if !ok {
 		log.Printf("Event %s not found", eventName)
 		return
@@ -91,6 +92,12 @@ func (cl *ContractListener) processLog(vLog types.Log, eventName, webhookURL str
 	err := cl.contractABI.UnpackIntoMap(dataMap, eventName, vLog.Data)
 	if err != nil {
 		log.Printf("Failed to unpack log for event %s: %v", eventName, err)
+		return
+	}
+
+	topics, err := getTopics(event, vLog.Topics)
+	if err != nil {
+		log.Printf("Failed to parse topics for event %s: %v", eventName, err)
 		return
 	}
 
@@ -104,16 +111,14 @@ func (cl *ContractListener) processLog(vLog types.Log, eventName, webhookURL str
 			"removed":          vLog.Removed,
 			"contractAddress":  vLog.Address.Hex(),
 		},
-		"topics": map[string]interface{}{
-			"from": common.HexToAddress(vLog.Topics[1].Hex()),
-			"to":   common.HexToAddress(vLog.Topics[2].Hex()),
-		},
-		"data": dataMap,
+		"topics": topics,
+		"data":   dataMap,
 	}
 
 	eventData, err := json.MarshalIndent(payload, "", "  ")
 	if err != nil {
 		log.Printf("Error marshalling event data: %v", err)
+		return
 	}
 
 	log.Printf("Event: %s - Data: %s", eventName, string(eventData))
