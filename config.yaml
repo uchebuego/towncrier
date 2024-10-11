@@ -1,38 +1,36 @@
 # config.yaml
-
-blockchain:
-  rpc_url: "wss://bsc-rpc.publicnode.com"
-  contract_address: "0x55d398326f99059fF775485246999027B3197955"
-  start_block: 43006580
-  event_names:
-    - "Transfer"
-  abi: |
-    [
-      {
-        "anonymous": false,
-        "inputs": [
-          {
-            "indexed": true,
-            "internalType": "address",
-            "name": "from",
-            "type": "address"
-          },
-          {
-            "indexed": true,
-            "internalType": "address",
-            "name": "to",
-            "type": "address"
-          },
-          {
-            "indexed": false,
-            "internalType": "uint256",
-            "name": "value",
-            "type": "uint256"
-          }
-        ],
-        "name": "Transfer",
-        "type": "event"
-      }
-    ]
-
-webhook_url: "https://webhook.site/5465cc37-02a3-4b5e-8a19-ed4aed250904"
+blockchains:
+  - rpc_url: "wss://bsc-rpc.publicnode.com"
+    webhook_url: "https://webhook.site/5465cc37-02a3-4b5e-8a19-ed4aed250904"
+    contracts:
+      - address: "0x55d398326f99059fF775485246999027B3197955"
+        abi_json: |
+          [
+            {
+              "anonymous": false,
+              "inputs": [
+                {
+                  "indexed": true,
+                  "internalType": "address",
+                  "name": "from",
+                  "type": "address"
+                },
+                {
+                  "indexed": true,
+                  "internalType": "address",
+                  "name": "to",
+                  "type": "address"
+                },
+                {
+                  "indexed": false,
+                  "internalType": "uint256",
+                  "name": "value",
+                  "type": "uint256"
+                }
+              ],
+              "name": "Transfer",
+              "type": "event"
+            }
+          ]
+        events:
+          - name: "Transfer"

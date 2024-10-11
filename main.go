@@ -3,6 +3,9 @@ package main
 import (
 	"flag"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/uchebuego/towncrier/blockchain"
 	"github.com/uchebuego/towncrier/config"
@@ -17,18 +20,18 @@ func main() {
 		log.Fatalf("Error loading config from %s: %v", *configPath, err)
 	}
 
-	abiJSON, err := blockchain.GetABI(cfg)
+	bm, err := blockchain.NewBlockchainManager(cfg)
 	if err != nil {
-		log.Fatalf("Error retrieving ABI: %v", err)
+		log.Fatalf("Failed to create blockchain manager: %v", err)
+
 	}
 
-	listener, err := blockchain.NewEventListener(cfg.Blockchain.RPCUrl, cfg.Blockchain.ContractAddress, abiJSON)
-	if err != nil {
-		log.Fatalf("Failed to create event listener: %v", err)
-	}
+	bm.Start()
 
-	err = listener.Listen(cfg.Blockchain.StartBlock, cfg.Blockchain.EventNames, cfg.WebhookURL)
-	if err != nil {
-		log.Fatalf("Error while listening to events: %v", err)
-	}
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+
+	<-quit
+	log.Println("Shutting down...")
+
 }

@@ -1,54 +1,80 @@
 package blockchain
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
+	"strings"
 
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/uchebuego/towncrier/config"
 )
 
-func GetABI(cfg *config.Config) (string, error) {
-	if cfg.Blockchain.ABI != "" {
-		log.Println("Using ABI from YAML config.")
-		return cfg.Blockchain.ABI, nil
-	}
-
-	if cfg.Blockchain.ABIFile != "" {
-		abiData, err := os.ReadFile(cfg.Blockchain.ABIFile)
+func LoadABI(contractConfig config.ContractConfig) (abi.ABI, error) {
+	if contractConfig.ABIPath != "" {
+		abiJSON, err := os.ReadFile(contractConfig.ABIPath)
 		if err != nil {
-			return "", fmt.Errorf("failed to load ABI from file: %v", err)
+			return abi.ABI{}, fmt.Errorf("failed to read ABI file: %v", err)
 		}
-		log.Println("Using ABI from file.")
-		return string(abiData), nil
+		return abi.JSON(strings.NewReader(string(abiJSON)))
 	}
 
-	if cfg.Blockchain.EtherscanAPIKey != "" && cfg.Blockchain.ContractAddress != "" {
-		abiData, err := fetchABIFromEtherscan(cfg.Blockchain.ContractAddress, cfg.Blockchain.EtherscanAPIKey)
+	if contractConfig.ABIURL != "" {
+		resp, err := http.Get(contractConfig.ABIURL)
 		if err != nil {
-			return "", fmt.Errorf("failed to fetch ABI from Etherscan: %v", err)
+			return abi.ABI{}, fmt.Errorf("failed to fetch ABI from URL: %v", err)
 		}
-		log.Println("Using ABI fetched from Etherscan.")
-		return abiData, nil
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			return abi.ABI{}, fmt.Errorf("failed to fetch ABI, status: %s", resp.Status)
+		}
+
+		abiJSON, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return abi.ABI{}, fmt.Errorf("failed to read ABI from response: %v", err)
+		}
+
+		return abi.JSON(strings.NewReader(string(abiJSON)))
 	}
 
-	return "", fmt.Errorf("no ABI provided inline, in file, or available via Etherscan")
+	if contractConfig.ABI != "" {
+		return abi.JSON(strings.NewReader(contractConfig.ABI))
+	}
+
+	if contractConfig.ABISource == "etherscan" && contractConfig.APIKey != "" {
+		return loadABIFromEtherscan(contractConfig.ContractAddress, contractConfig.APIKey)
+	}
+
+	return abi.ABI{}, errors.New("no valid ABI source provided")
 }
 
-func fetchABIFromEtherscan(contractAddress, apiKey string) (string, error) {
+func loadABIFromEtherscan(contractAddress, apiKey string) (abi.ABI, error) {
 	url := fmt.Sprintf("https://api.etherscan.io/api?module=contract&action=getabi&address=%s&apikey=%s", contractAddress, apiKey)
+
 	resp, err := http.Get(url)
 	if err != nil {
-		return "", err
+		return abi.ABI{}, fmt.Errorf("failed to fetch ABI from Etherscan: %v", err)
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
+	if resp.StatusCode != http.StatusOK {
+		return abi.ABI{}, fmt.Errorf("failed to fetch ABI from Etherscan, status: %s", resp.Status)
 	}
 
-	return string(body), nil
+	var result map[string]interface{}
+	err = json.NewDecoder(resp.Body).Decode(&result)
+	if err != nil {
+		return abi.ABI{}, fmt.Errorf("failed to decode Etherscan response: %v", err)
+	}
+
+	if result["status"] != "1" {
+		return abi.ABI{}, fmt.Errorf("failed to retrieve ABI: %v", result["message"])
+	}
+
+	abiString := result["result"].(string)
+	return abi.JSON(strings.NewReader(abiString))
 }

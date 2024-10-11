@@ -1,27 +1,41 @@
 package config
 
 import (
-	"log"
 	"os"
 
 	"gopkg.in/yaml.v2"
 )
 
-type Config struct {
-	Blockchain struct {
-		RPCUrl          string   `yaml:"rpc_url"`
-		ContractAddress string   `yaml:"contract_address"`
-		StartBlock      uint64   `yaml:"start_block"`
-		EventNames      []string `yaml:"event_names"`
-		ABI             string   `yaml:"abi"`
-		ABIFile         string   `yaml:"abi_file"`
-		EtherscanAPIKey string   `yaml:"etherscan_api_key"`
-	} `yaml:"blockchain"`
-	WebhookURL string `yaml:"webhook_url"`
+type EventConfig struct {
+	Name       string `yaml:"name"`
+	WebhookURL string `yaml:"webhook_url,omitempty"`
 }
 
-func LoadConfig(configFile string) (*Config, error) {
-	data, err := os.ReadFile(configFile)
+type ContractConfig struct {
+	Address         string        `yaml:"address"`
+	ABIPath         string        `yaml:"abi,omitempty"`
+	ABI             string        `yaml:"abi_json,omitempty"`
+	ABIURL          string        `yaml:"abi_url,omitempty"`
+	ABISource       string        `yaml:"abi_source,omitempty"`
+	APIKey          string        `yaml:"api_key,omitempty"`
+	WebhookURL      string        `yaml:"webhook_url,omitempty"`
+	Events          []EventConfig `yaml:"events"`
+	ContractAddress string        `yaml:"contract_address,omitempty"`
+}
+
+type BlockchainConfig struct {
+	RPCURL     string           `yaml:"rpc_url"`
+	WebhookURL string           `yaml:"webhook_url,omitempty"`
+	Contracts  []ContractConfig `yaml:"contracts"`
+	StartBlock uint64           `yaml:"start_block"`
+}
+
+type Config struct {
+	Blockchains []BlockchainConfig `yaml:"blockchains"`
+}
+
+func LoadConfig(filePath string) (*Config, error) {
+	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, err
 	}
@@ -32,6 +46,5 @@ func LoadConfig(configFile string) (*Config, error) {
 		return nil, err
 	}
 
-	log.Printf("Config loaded from %s", configFile)
 	return &config, nil
 }
