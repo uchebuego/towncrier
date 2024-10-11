@@ -1,6 +1,6 @@
 blockchains:
   - rpc_url: "wss://bsc-rpc.publicnode.com"
-    webhook_url: "https://webhook.site/31962c20-92ca-49fb-bb73-1cf677d1f06d"
+    webhook_url: "https://webhook.site/57fea4fc-261b-486d-9dfd-ad426f354301"
     contracts:
       - address: "0x55d398326f99059fF775485246999027B3197955"
         abi_json: |
