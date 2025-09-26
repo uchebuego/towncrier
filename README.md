@@ -1,6 +1,27 @@
 # EVM Event Listener Tool
 
+> **Quick Start**: Run the tool with `go run ./cmd/towncrier -config=config.yaml` after setting your webhook URL in the sample config.yaml file.
+
 This tool listens for specified events on multiple EVM-based blockchains, decodes them, and logs them out. It also sends the decoded data to webhooks defined in your YAML configuration file. The tool supports various methods of loading contract ABIs and allows users to define webhooks at different levels (blockchain, contract, event).
+
+## Architecture Overview
+
+Towncrier follows a modular design with clear separation of concerns:
+
+- **Command Layer** (`cmd/towncrier`): Entry point that parses configuration and initializes the application
+- **Blockchain Layer** (`internal/blockchain`): Manages connections to different blockchains and listens for events
+  - `BlockchainManager`: Coordinates multiple blockchain listeners
+  - `BlockchainListener`: Connects to a specific blockchain and manages contract listeners
+  - `ContractListener`: Listens for events from a specific smart contract
+- **Webhook Layer** (`internal/webhook`): Handles sending event data to configured webhook endpoints
+- **Configuration Layer** (`pkg/config`): Loads and parses the YAML configuration file
+
+The application flow:
+1. Load configuration from YAML file
+2. Initialize blockchain connections based on configuration
+3. Set up event listeners for specified contracts
+4. Listen for events and decode them using contract ABIs
+5. Send decoded event data to configured webhooks
 
 ## Features
 
