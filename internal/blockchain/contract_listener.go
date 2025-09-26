@@ -2,7 +2,6 @@ package blockchain
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"math/big"
@@ -115,16 +114,7 @@ func (cl *ContractListener) processLog(vLog types.Log, eventName, webhookURL str
 		"data":   dataMap,
 	}
 
-	eventData, err := json.MarshalIndent(payload, "", "  ")
-	if err != nil {
-		log.Printf("Error marshalling event data: %v", err)
-		return
-	}
-
-	log.Printf("Event: %s - Data: %s", eventName, string(eventData))
-
-	err = webhook.Send(webhookURL, payload)
-	if err != nil {
-		log.Printf("Failed to send event to webhook: %v", err)
-	}
+	go func() {
+		_ = webhook.Send(webhookURL, payload, eventName)
+	}()
 }
